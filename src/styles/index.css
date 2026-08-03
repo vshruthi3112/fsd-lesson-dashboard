@@ -518,3 +518,81 @@ body {
     padding: 1.5rem;
   }
 }
+
+/* --- Confirm Modal --- */
+.confirm-modal-dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 400px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  margin: 0;
+  opacity: 0;
+  scale: 0.95;
+  animation: modalFadeIn 0.15s ease-out forwards;
+}
+
+.confirm-modal-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.confirm-modal {
+  padding: 2rem;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    scale: 0.95;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+.confirm-modal-title {
+  font-size: 1.2rem;
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+}
+
+.confirm-modal-message {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-confirm-delete {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.btn-confirm-delete:hover {
+  background-color: #c0392b;
+}
+
+.btn-confirm-delete:focus-visible,
+.confirm-modal-actions .btn-cancel:focus-visible {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}

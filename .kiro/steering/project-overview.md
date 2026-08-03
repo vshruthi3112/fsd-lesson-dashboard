@@ -22,6 +22,7 @@ src/                              # React Frontend (Vite, port 3000)
 │   ├── LessonForm.jsx            # Create/Edit form (modal overlay)
 │   ├── LessonList.jsx            # Renders filtered lesson cards
 │   ├── LessonCard.jsx            # Single lesson display
+│   ├── ConfirmModal.jsx          # Reusable confirmation dialog (native <dialog>)
 │   ├── SearchBar.jsx             # Text search input
 │   ├── FilterPanel.jsx           # Category/level dropdowns
 │   ├── LoadingSpinner.jsx        # Loading state UI

@@ -99,6 +99,7 @@ Error responses follow a consistent shape: `{ message, status, timestamp }`.
 │   │   ├── FilterPanel.jsx           # Category/Level dropdowns
 │   │   ├── LessonList.jsx            # Grid of lesson cards
 │   │   ├── LessonCard.jsx            # Single lesson + Edit/Delete buttons
+│   │   ├── ConfirmModal.jsx          # Reusable confirmation dialog (native <dialog>)
 │   │   ├── LoadingSpinner.jsx        # Loading state UI
 │   │   └── ErrorMessage.jsx          # Error state + retry
 │   ├── hooks/
@@ -197,6 +198,7 @@ Components never call the service or API directly. They always go through hooks.
         ├── <FilterPanel>        (dropdowns)
         ├── <LessonList>
         │     └── <LessonCard>   (×N, with Edit/Delete)
+        │           └── <ConfirmModal>  (delete confirmation)
         ├── <LoadingSpinner>     (if loading)
         └── <LessonForm>         (modal, if showForm)
 ```
@@ -281,6 +283,8 @@ dispatch(action)
 
 10. **Accessibility** — Semantic HTML, ARIA roles, `sr-only` labels, keyboard-navigable controls, `role="alert"` for errors.
 
+11. **Native `<dialog>` for modals** — The `ConfirmModal` uses the HTML `<dialog>` element with `showModal()`, giving us free focus trapping, backdrop, and Escape-to-close behavior without extra libraries.
+
 ---
 
 ## File-by-File Explanation
@@ -348,8 +352,11 @@ Modal form for create and edit. Features:
 - Disabled state while `saving` is true
 - Accessible labels for every input
 
+#### `ConfirmModal.jsx`
+A reusable confirmation dialog built on the native `<dialog>` element. Props: `open`, `title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`. Handles Escape key, backdrop click, and auto-focuses the confirm button. Used by `LessonCard` for delete confirmation.
+
 #### `LessonCard.jsx`
-Displays lesson data with Edit and Delete buttons. Delete triggers a `window.confirm()` dialog before calling the handler.
+Displays lesson data with Edit and Delete buttons. Delete opens a `ConfirmModal` for user confirmation before calling the handler.
 
 #### `LessonList.jsx`
 Passes `onEdit`, `onDelete`, and `saving` through to each `LessonCard`. Renders an empty state when no lessons match.

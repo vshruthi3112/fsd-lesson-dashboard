@@ -1,4 +1,5 @@
-import React from 'react';
+import { useState } from 'react';
+import ConfirmModal from './ConfirmModal';
 
 /**
  * LessonCard - Displays a single lesson's information with action buttons.
@@ -6,20 +7,28 @@ import React from 'react';
  * Props:
  * - lesson: Object with id, title, description, category, instructor, duration, level, date
  * - onEdit: (lesson) => void — opens the edit form
- * - onDelete: (id) => void — triggers delete confirmation
+ * - onDelete: (id) => void — triggers delete
  * - saving: Whether a mutation is in progress (disables action buttons)
  */
 function LessonCard({ lesson, onEdit, onDelete, saving }) {
   const { id, title, description, category, instructor, duration, level, date } = lesson;
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleDelete = () => {
-    if (window.confirm(`Delete "${title}"? This cannot be undone.`)) {
-      onDelete(id);
-    }
+  const handleDeleteClick = () => {
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setConfirmOpen(false);
+    onDelete(id);
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmOpen(false);
   };
 
   return (
-    <article className="lesson-card" role="listitem">
+    <article className="lesson-card" aria-label={`Lesson: ${title}`}>
       <div className="lesson-card-header">
         <h3 className="lesson-title">{title}</h3>
         <span className={`lesson-level level-${level.toLowerCase()}`}>{level}</span>
@@ -53,13 +62,23 @@ function LessonCard({ lesson, onEdit, onDelete, saving }) {
         </button>
         <button
           className="btn-delete"
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           disabled={saving}
           aria-label={`Delete ${title}`}
         >
           🗑️ Delete
         </button>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        title="Delete Lesson"
+        message={`Delete "${title}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </article>
   );
 }
