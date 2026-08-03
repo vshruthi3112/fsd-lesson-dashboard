@@ -1,0 +1,13 @@
+{
+  "name": "Validate Frontend Code on Save",
+  "version": "1.0.0",
+  "description": "Checks React/JS files for anti-patterns and coding standard violations when saved",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["src/**/*.jsx", "src/**/*.js"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check the edited file for violations of our coding standards: (1) Components must not call APIs directly — they should use hooks from src/hooks/ which use the service layer. (2) Hooks must handle loading/error/success states and include useEffect cleanup. (3) useCallback for stable references, useMemo for expensive computations. (4) Missing accessibility: labels, aria attributes, semantic HTML, role='alert' on errors. (5) JSDoc comments on exported functions/components. Only report actual issues found."
+  }
+}

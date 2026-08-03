@@ -1,0 +1,13 @@
+{
+  "name": "Review New Components & Hooks",
+  "version": "1.0.0",
+  "description": "Reviews newly created React components, hooks, or service files for compliance with project standards",
+  "when": {
+    "type": "fileCreated",
+    "patterns": ["src/components/*.jsx", "src/hooks/*.js", "src/services/*.js"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the newly created file against our coding standards: (1) Functional component with JSDoc describing purpose and props. (2) Props destructured in function signature. (3) Hooks return objects (not arrays) with JSDoc on return values. (4) Service functions return Promises with JSDoc mapping to API endpoints. (5) Accessibility: semantic HTML, aria attributes, labels on inputs, keyboard support. (6) No direct API calls in components — use hooks → service layer pattern. Suggest specific improvements if any issues are found."
+  }
+}
