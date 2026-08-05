@@ -363,6 +363,158 @@ Passes `onEdit`, `onDelete`, and `saving` through to each `LessonCard`. Renders 
 
 ---
 
+## Create Lesson Flow
+
+The diagram below traces the full path when a user creates/adds a new lesson — from the button click all the way to the database and back.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              USER INTERACTION                                    │
+│                                                                                 │
+│  1. User clicks "➕ Add Lesson" button in LessonDashboard                        │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  LessonDashboard.jsx                                                            │
+│                                                                                 │
+│  2. handleAdd() sets showForm=true, editingLesson=null                           │
+│  3. Renders <LessonForm lesson={null} onSubmit={handleFormSubmit} />              │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  LessonForm.jsx (modal overlay)                                                 │
+│                                                                                 │
+│  4. User fills in: title, description, category, instructor, duration,           │
+│     level, date                                                                 │
+│  5. User clicks "Create Lesson" button                                           │
+│  6. handleSubmit() runs client-side validation                                   │
+│     - If invalid → shows validation error, stops here                           │
+│     - If valid → builds payload object, calls onSubmit(payload)                  │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  LessonDashboard.jsx → handleFormSubmit(lessonData)                              │
+│                                                                                 │
+│  7. Calls addLesson(lessonData)  (from useLessons hook)                          │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  useLessons.js (custom hook)                                                    │
+│                                                                                 │
+│  8. dispatch({ type: MUTATE_START })  → sets saving=true in state               │
+│  9. Calls createLesson(lessonData)    (from lessonService)                       │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  lessonService.js                                                               │
+│                                                                                 │
+│  10. createLesson(data) → calls post('/lessons', data) from apiClient            │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  apiClient.js                                                                   │
+│                                                                                 │
+│  11. request('/lessons', { method: 'POST', body: data })                         │
+│      - Builds URL: /api/lessons                                                 │
+│      - Sets headers: Content-Type: application/json                             │
+│      - Serializes body: JSON.stringify(data)                                    │
+│      - Calls fetch(url, config)                                                 │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    │  HTTP POST /api/lessons
+                                    │  (proxied by Vite :3000 → :8080)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  LessonController.java  (Spring Boot)                                           │
+│                                                                                 │
+│  12. @PostMapping receives the request                                           │
+│  13. @Valid @RequestBody Lesson lesson → deserializes JSON + validates            │
+│      - If validation fails → MethodArgumentNotValidException → 400              │
+│      - If valid → calls lessonService.createLesson(lesson)                      │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  LessonService.java                                                             │
+│                                                                                 │
+│  14. createLesson(lesson)                                                        │
+│      - Sets lesson.id = null (ensures DB generates the ID)                      │
+│      - Calls repository.save(lesson)                                            │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  LessonRepository.java (Spring Data JPA)                                        │
+│                                                                                 │
+│  15. save(lesson) → Hibernate generates INSERT INTO lesson (...)                 │
+│      → H2 in-memory database stores the row                                    │
+│      → Returns the entity with generated ID                                    │
+│                                                                                 │
+└───────────────────────────────────┬─────────────────────────────────────────────┘
+                                    │
+                                    │  ← Response bubbles back up
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  RESPONSE PATH (success)                                                        │
+│                                                                                 │
+│  16. Controller returns ResponseEntity 201 Created + saved lesson JSON           │
+│  17. apiClient.js parses JSON response → returns lesson object                   │
+│  18. lessonService.js resolves the Promise with the created lesson               │
+│  19. useLessons:                                                                │
+│      - dispatch({ type: MUTATE_SUCCESS }) → saving=false                        │
+│      - Calls loadLessons() to refetch the full list (GET /api/lessons)           │
+│      - dispatch(FETCH_SUCCESS) updates lessons[] in state                       │
+│  20. LessonDashboard: setShowForm(false) → hides the modal                      │
+│  21. React re-renders LessonList with the new lesson visible                     │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  ERROR PATH (if something fails)                                                │
+│                                                                                 │
+│  • Network error    → apiClient throws ApiError (status 0)                       │
+│  • Validation (400) → apiClient parses { message } from backend, throws ApiError │
+│  • Server error     → apiClient throws ApiError (status 500)                     │
+│                                                                                 │
+│  • useLessons catches the error:                                                │
+│    dispatch({ type: MUTATE_ERROR, payload: err.message })                       │
+│    → saving=false, error="..." in state                                         │
+│                                                                                 │
+│  • LessonDashboard renders <ErrorMessage> with retry button                      │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Summary of Components in the Flow
+
+| Step | Layer | File | Role |
+|------|-------|------|------|
+| 1–3 | UI (Container) | `LessonDashboard.jsx` | Manages form state, passes callbacks |
+| 4–6 | UI (Presentational) | `LessonForm.jsx` | Collects input, validates, calls onSubmit |
+| 7–9 | Hook (Logic) | `useLessons.js` | Manages async state via useReducer, delegates to service |
+| 10 | Service | `lessonService.js` | Maps domain action → HTTP verb + endpoint |
+| 11 | HTTP Client | `apiClient.js` | Handles fetch, JSON, headers, error parsing |
+| 12–13 | Controller | `LessonController.java` | Routes HTTP request, triggers validation |
+| 14 | Service | `LessonService.java` | Business logic (nulls ID, calls repo) |
+| 15 | Repository | `LessonRepository.java` | JPA → SQL INSERT via Hibernate → H2 |
+
+---
+
 ## Roadmap
 
 - [x] Week 5: React dashboard with hooks, search, filter
