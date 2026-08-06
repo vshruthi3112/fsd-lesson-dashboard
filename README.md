@@ -124,6 +124,8 @@ Error responses follow a consistent shape: `{ message, status, timestamp }`.
 │       │   └── LessonRepository.java         # Spring Data JPA repository
 │       ├── controller/
 │       │   └── LessonController.java         # REST endpoints
+|       |__ service/
+|       |   └── LessonService.java            # Backend business logic
 │       └── exception/
 │           └── GlobalExceptionHandler.java   # Structured error responses
 │   └── src/main/resources/
@@ -369,9 +371,9 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              USER INTERACTION                                    │
+│                              USER INTERACTION                                   │
 │                                                                                 │
-│  1. User clicks "➕ Add Lesson" button in LessonDashboard                        │
+│  1. User clicks "➕ Add Lesson" button in LessonDashboard                       │
 │                                                                                 │
 └───────────────────────────────────┬─────────────────────────────────────────────┘
                                     │
@@ -379,8 +381,8 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  LessonDashboard.jsx                                                            │
 │                                                                                 │
-│  2. handleAdd() sets showForm=true, editingLesson=null                           │
-│  3. Renders <LessonForm lesson={null} onSubmit={handleFormSubmit} />              │
+│  2. handleAdd() sets showForm=true, editingLesson=null                          │
+│  3. Renders <LessonForm lesson={null} onSubmit={handleFormSubmit} />            │
 │                                                                                 │
 └───────────────────────────────────┬─────────────────────────────────────────────┘
                                     │
@@ -388,20 +390,20 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  LessonForm.jsx (modal overlay)                                                 │
 │                                                                                 │
-│  4. User fills in: title, description, category, instructor, duration,           │
+│  4. User fills in: title, description, category, instructor, duration,          │
 │     level, date                                                                 │
-│  5. User clicks "Create Lesson" button                                           │
-│  6. handleSubmit() runs client-side validation                                   │
+│  5. User clicks "Create Lesson" button                                          │
+│  6. handleSubmit() runs client-side validation                                  │
 │     - If invalid → shows validation error, stops here                           │
-│     - If valid → builds payload object, calls onSubmit(payload)                  │
+│     - If valid → builds payload object, calls onSubmit(payload)                 │
 │                                                                                 │
 └───────────────────────────────────┬─────────────────────────────────────────────┘
                                     │
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│  LessonDashboard.jsx → handleFormSubmit(lessonData)                              │
+│  LessonDashboard.jsx → handleFormSubmit(lessonData)                             │
 │                                                                                 │
-│  7. Calls addLesson(lessonData)  (from useLessons hook)                          │
+│  7. Calls addLesson(lessonData)  (from useLessons hook)                         │
 │                                                                                 │
 └───────────────────────────────────┬─────────────────────────────────────────────┘
                                     │
@@ -410,7 +412,7 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 │  useLessons.js (custom hook)                                                    │
 │                                                                                 │
 │  8. dispatch({ type: MUTATE_START })  → sets saving=true in state               │
-│  9. Calls createLesson(lessonData)    (from lessonService)                       │
+│  9. Calls createLesson(lessonData)    (from lessonService)                      │
 │                                                                                 │
 └───────────────────────────────────┬─────────────────────────────────────────────┘
                                     │
@@ -418,7 +420,7 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  lessonService.js                                                               │
 │                                                                                 │
-│  10. createLesson(data) → calls post('/lessons', data) from apiClient            │
+│  10. createLesson(data) → calls post('/lessons', data) from apiClient           │
 │                                                                                 │
 └───────────────────────────────────┬─────────────────────────────────────────────┘
                                     │
@@ -426,7 +428,7 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  apiClient.js                                                                   │
 │                                                                                 │
-│  11. request('/lessons', { method: 'POST', body: data })                         │
+│  11. request('/lessons', { method: 'POST', body: data })                        │
 │      - Builds URL: /api/lessons                                                 │
 │      - Sets headers: Content-Type: application/json                             │
 │      - Serializes body: JSON.stringify(data)                                    │
@@ -440,8 +442,8 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  LessonController.java  (Spring Boot)                                           │
 │                                                                                 │
-│  12. @PostMapping receives the request                                           │
-│  13. @Valid @RequestBody Lesson lesson → deserializes JSON + validates            │
+│  12. @PostMapping receives the request                                          │
+│  13. @Valid @RequestBody Lesson lesson → deserializes JSON + validates          │
 │      - If validation fails → MethodArgumentNotValidException → 400              │
 │      - If valid → calls lessonService.createLesson(lesson)                      │
 │                                                                                 │
@@ -451,7 +453,7 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  LessonService.java                                                             │
 │                                                                                 │
-│  14. createLesson(lesson)                                                        │
+│  14. createLesson(lesson)                                                       │
 │      - Sets lesson.id = null (ensures DB generates the ID)                      │
 │      - Calls repository.save(lesson)                                            │
 │                                                                                 │
@@ -461,9 +463,9 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  LessonRepository.java (Spring Data JPA)                                        │
 │                                                                                 │
-│  15. save(lesson) → Hibernate generates INSERT INTO lesson (...)                 │
-│      → H2 in-memory database stores the row                                    │
-│      → Returns the entity with generated ID                                    │
+│  15. save(lesson) → Hibernate generates INSERT INTO lesson (...)                │
+│      → H2 in-memory database stores the row                                     │
+│      → Returns the entity with generated ID                                     │
 │                                                                                 │
 └───────────────────────────────────┬─────────────────────────────────────────────┘
                                     │
@@ -472,30 +474,30 @@ The diagram below traces the full path when a user creates/adds a new lesson —
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  RESPONSE PATH (success)                                                        │
 │                                                                                 │
-│  16. Controller returns ResponseEntity 201 Created + saved lesson JSON           │
-│  17. apiClient.js parses JSON response → returns lesson object                   │
-│  18. lessonService.js resolves the Promise with the created lesson               │
+│  16. Controller returns ResponseEntity 201 Created + saved lesson JSON          │
+│  17. apiClient.js parses JSON response → returns lesson object                  │
+│  18. lessonService.js resolves the Promise with the created lesson              │
 │  19. useLessons:                                                                │
 │      - dispatch({ type: MUTATE_SUCCESS }) → saving=false                        │
-│      - Calls loadLessons() to refetch the full list (GET /api/lessons)           │
+│      - Calls loadLessons() to refetch the full list (GET /api/lessons)          │
 │      - dispatch(FETCH_SUCCESS) updates lessons[] in state                       │
 │  20. LessonDashboard: setShowForm(false) → hides the modal                      │
-│  21. React re-renders LessonList with the new lesson visible                     │
+│  21. React re-renders LessonList with the new lesson visible                    │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │  ERROR PATH (if something fails)                                                │
 │                                                                                 │
-│  • Network error    → apiClient throws ApiError (status 0)                       │
-│  • Validation (400) → apiClient parses { message } from backend, throws ApiError │
-│  • Server error     → apiClient throws ApiError (status 500)                     │
+│  • Network error    → apiClient throws ApiError (status 0)                      │
+│  • Validation (400) → apiClient parses { message } from backend, throws ApiError│
+│  • Server error     → apiClient throws ApiError (status 500)                    │
 │                                                                                 │
 │  • useLessons catches the error:                                                │
 │    dispatch({ type: MUTATE_ERROR, payload: err.message })                       │
 │    → saving=false, error="..." in state                                         │
 │                                                                                 │
-│  • LessonDashboard renders <ErrorMessage> with retry button                      │
+│  • LessonDashboard renders <ErrorMessage> with retry button                     │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
