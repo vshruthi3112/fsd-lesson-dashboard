@@ -1,5 +1,14 @@
+-- ============================================
+-- SEED LESSONS
+-- ============================================
 -- Seed data matching the original mock lessons from the React frontend.
 -- This runs on every startup since we're using H2 in-memory.
+--
+-- Default user accounts are created by DataSeeder.java (not SQL),
+-- because passwords need BCrypt hashing at runtime.
+-- Login with:
+--   admin / password123       → ADMIN (full access)
+--   instructor / password123  → INSTRUCTOR (view + create only)
 
 INSERT INTO lesson (title, description, category, instructor, duration, level, date) VALUES
 ('Introduction to React Hooks', 'Learn the basics of useState and useEffect hooks in React.', 'Frontend', 'Jane Smith', 45, 'Beginner', '2026-06-01');

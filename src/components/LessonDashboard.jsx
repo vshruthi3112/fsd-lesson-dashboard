@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLessons } from '../hooks/useLessons';
 import { useSearch } from '../hooks/useSearch';
 import { useFilter } from '../hooks/useFilter';
@@ -18,13 +18,21 @@ import ErrorMessage from './ErrorMessage';
  * - Filtering (useFilter)
  * - Create/Edit form visibility
  * - Delete operations
+ * - Role-based access control (show/hide buttons based on user role)
  *
  * Data Flow:
  * 1. useLessons() fetches all lessons + provides CRUD mutations
  * 2. useSearch() narrows by text query
  * 3. useFilter() further narrows by category/level
+ *
+ * Role Permissions:
+ * - ADMIN: can create, edit, delete
+ * - INSTRUCTOR: can create only (no edit/delete)
+ *
+ * @param {Object} props
+ * @param {string} props.userRole - "ADMIN" or "INSTRUCTOR"
  */
-function LessonDashboard() {
+function LessonDashboard({ userRole }) {
   // CRUD state and operations
   const {
     lessons,
@@ -48,6 +56,11 @@ function LessonDashboard() {
   // Form visibility state
   const [showForm, setShowForm] = useState(false);
   const [editingLesson, setEditingLesson] = useState(null);
+
+  // --- Role-based permissions ---
+  const canCreate = userRole === 'ADMIN' || userRole === 'INSTRUCTOR';
+  const canEdit = userRole === 'ADMIN';
+  const canDelete = userRole === 'ADMIN';
 
   // --- Form Handlers ---
 
@@ -106,9 +119,11 @@ function LessonDashboard() {
       {/* Toolbar: Search + Add Button */}
       <div className="dashboard-toolbar">
         <SearchBar query={query} onQueryChange={setQuery} />
-        <button className="btn-add" onClick={handleAdd} disabled={saving}>
-          ➕ Add Lesson
-        </button>
+        {canCreate && (
+          <button className="btn-add" onClick={handleAdd} disabled={saving}>
+            ➕ Add Lesson
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -129,8 +144,8 @@ function LessonDashboard() {
       {/* Lesson List */}
       <LessonList
         lessons={filteredItems}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={canEdit ? handleEdit : null}
+        onDelete={canDelete ? handleDelete : null}
         saving={saving}
       />
 

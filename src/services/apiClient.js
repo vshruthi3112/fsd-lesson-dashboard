@@ -6,9 +6,12 @@
  * - JSON request/response serialization
  * - Error normalization (network errors, HTTP errors, API error messages)
  * - Consistent error format for the UI layer
+ * - JWT token attachment (Authorization header)
  *
  * All service-layer functions use this client instead of calling fetch() directly.
  */
+
+import { getToken, clearAuth } from './tokenStorage';
 
 const BASE_URL = '/api';
 
@@ -51,13 +54,21 @@ async function parseErrorResponse(response) {
  */
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
+  // Build headers — include JWT token if available
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  // Attach JWT token to every request (if logged in)
+  const token = getToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    headers,
   };
 
   // Serialize body to JSON if it's an object
@@ -80,6 +91,13 @@ async function request(endpoint, options = {}) {
   // Handle HTTP error responses
   if (!response.ok) {
     const message = await parseErrorResponse(response);
+
+    // If we get 401 Unauthorized, the token is invalid/expired.
+    // Clear stored auth data so the user gets redirected to login.
+    if (response.status === 401) {
+      clearAuth();
+    }
+
     throw new ApiError(message, response.status);
   }
 

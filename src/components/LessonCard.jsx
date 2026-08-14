@@ -51,24 +51,30 @@ function LessonCard({ lesson, onEdit, onDelete, saving }) {
         </span>
       </div>
 
-      <div className="lesson-card-actions">
-        <button
-          className="btn-edit"
-          onClick={() => onEdit(lesson)}
-          disabled={saving}
-          aria-label={`Edit ${title}`}
-        >
-          ✏️ Edit
-        </button>
-        <button
-          className="btn-delete"
-          onClick={handleDeleteClick}
-          disabled={saving}
-          aria-label={`Delete ${title}`}
-        >
-          🗑️ Delete
-        </button>
-      </div>
+      {(onEdit || onDelete) && (
+        <div className="lesson-card-actions">
+          {onEdit && (
+            <button
+              className="btn-edit"
+              onClick={() => onEdit(lesson)}
+              disabled={saving}
+              aria-label={`Edit ${title}`}
+            >
+              ✏️ Edit
+            </button>
+          )}
+          {onDelete && (
+            <button
+              className="btn-delete"
+              onClick={handleDeleteClick}
+              disabled={saving}
+              aria-label={`Delete ${title}`}
+            >
+              🗑️ Delete
+            </button>
+          )}
+        </div>
+      )}
 
       <ConfirmModal
         open={confirmOpen}
