@@ -16,6 +16,23 @@ import {
 } from './tokenStorage';
 
 /**
+ * Hash a password using SHA-256 before sending to the server.
+ *
+ * This ensures the plain-text password never appears in network requests.
+ * The server will BCrypt-hash this SHA-256 digest for storage/comparison.
+ *
+ * @param {string} password - Plain-text password
+ * @returns {Promise<string>} Hex-encoded SHA-256 hash
+ */
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
  * Log in a user.
  *
  * Sends credentials to the backend. If valid, stores the JWT token
@@ -27,7 +44,8 @@ import {
  * @throws {ApiError} On invalid credentials (401) or network errors
  */
 export async function login(username, password) {
-  const response = await post('/auth/login', { username, password });
+  const hashedPassword = await hashPassword(password);
+  const response = await post('/auth/login', { username, password: hashedPassword });
 
   // Store token and user info
   setToken(response.token);
@@ -48,7 +66,8 @@ export async function login(username, password) {
  * @throws {ApiError} On conflict (409 username taken) or network errors
  */
 export async function register(username, password, role) {
-  const response = await post('/auth/register', { username, password, role });
+  const hashedPassword = await hashPassword(password);
+  const response = await post('/auth/register', { username, password: hashedPassword, role });
 
   setToken(response.token);
   setUser({ username: response.username, role: response.role });

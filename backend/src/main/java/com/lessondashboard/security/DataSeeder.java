@@ -7,6 +7,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * DataSeeder - Creates default user accounts on application startup.
  *
@@ -37,10 +41,14 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         // Only seed if no users exist (first startup)
         if (userRepository.count() == 0) {
+            // Hash "password123" with SHA-256 first (matching what the frontend sends),
+            // then BCrypt-hash that for storage.
+            String sha256Hash = sha256("password123");
+
             // Create admin user
             User admin = new User(
                     "admin",
-                    passwordEncoder.encode("password123"),
+                    passwordEncoder.encode(sha256Hash),
                     Role.ADMIN
             );
             userRepository.save(admin);
@@ -48,7 +56,7 @@ public class DataSeeder implements CommandLineRunner {
             // Create instructor user
             User instructor = new User(
                     "instructor",
-                    passwordEncoder.encode("password123"),
+                    passwordEncoder.encode(sha256Hash),
                     Role.INSTRUCTOR
             );
             userRepository.save(instructor);
@@ -56,6 +64,25 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("✅ Default users created:");
             System.out.println("   admin / password123 (ADMIN)");
             System.out.println("   instructor / password123 (INSTRUCTOR)");
+        }
+    }
+
+    /**
+     * Compute SHA-256 hash of a string, returned as hex.
+     * Mirrors the frontend hashPassword() function so seeded passwords
+     * match what the client sends during login.
+     */
+    private String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
         }
     }
 }
