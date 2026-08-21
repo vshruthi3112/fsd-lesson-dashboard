@@ -5,6 +5,7 @@ A full-stack lesson dashboard built as part of a Full Stack Development learning
 - **Week 5**: React frontend — hooks, state management, search & filter
 - **Week 6**: Spring Boot backend — REST API, JPA, H2 database, full CRUD
 - **Week 7**: JWT authentication — login flow, role-based authorization
+- **Week 8**: Production practices — structured logging, input validation, exception handling
 
 ---
 
@@ -20,6 +21,9 @@ A full-stack lesson dashboard built as part of a Full Stack Development learning
 - **Delete Lesson** — Remove lessons with confirmation dialog (Admin only)
 - **Loading & Error States** — Spinner, error banners, retry capability
 - **Validation** — Client-side checks in the form + server-side `@Valid` annotations
+- **Structured Logging** — SLF4J/Logback with level-based logging across all layers
+- **Exception Handling** — Centralized `@ControllerAdvice` with structured error responses
+- **Input Validation** — DTO validation for auth + entity validation for lessons with field-level error messages
 
 ---
 
@@ -82,7 +86,8 @@ npm run build
 | Password Hashing | BCrypt | One-way password hashing |
 | Persistence | Spring Data JPA + Hibernate | ORM and repository pattern |
 | Database | H2 (in-memory) | Zero-config dev database |
-| Validation | Jakarta Bean Validation | `@NotBlank`, `@Min` annotations |
+| Validation | Jakarta Bean Validation | `@NotBlank`, `@Min`, `@Pattern`, `@Size` |
+| Logging | SLF4J + Logback | Structured logging (bundled with Spring Boot) |
 | Styling | Plain CSS | Flexbox, Grid, responsive design |
 
 ---
@@ -118,6 +123,19 @@ Authorization: Bearer <jwt-token>
 All errors follow a consistent shape:
 ```json
 { "message": "...", "status": 401, "timestamp": "2026-08-07T..." }
+```
+
+Validation errors (400) include field-level details:
+```json
+{
+  "status": 400,
+  "message": "Validation failed for 2 field(s)",
+  "timestamp": "2026-08-18T...",
+  "errors": [
+    "title: Title is required",
+    "category: Category is required"
+  ]
+}
 ```
 
 ---
@@ -166,6 +184,9 @@ All errors follow a consistent shape:
 │       ├── controller/
 │       │   ├── LessonController.java         # Lesson REST endpoints
 │       │   └── AuthController.java           # Login/Register endpoints
+│       ├── dto/
+│       │   ├── LoginRequest.java             # Login validation DTO
+│       │   └── RegisterRequest.java          # Registration validation DTO
 │       ├── service/
 │       │   ├── LessonService.java            # Lesson business logic
 │       │   └── AuthService.java              # Auth logic (credentials + token)
@@ -178,8 +199,11 @@ All errors follow a consistent shape:
 │       └── exception/
 │           └── GlobalExceptionHandler.java   # Structured error responses
 │   └── src/main/resources/
-│       ├── application.properties            # Server + DB + JWT config
+│       ├── application.properties            # Server + DB + JWT + Logging config
 │       └── data.sql                          # Seed data (10 lessons)
+│
+├── backend/logs/
+│   └── lesson-dashboard.log                  # Application log file (auto-rotated)
 │
 ├── vite.config.js               # Vite config (proxy /api → localhost:8080)
 ├── package.json                 # Frontend dependencies + scripts
@@ -357,6 +381,80 @@ Backend REST API (protected by Spring Security + JWT)
 
 ---
 
+## Week 8 — Production Practices (Logging, Validation, Exception Handling)
+
+### Logging
+
+| Concept | Where | Why |
+|---------|-------|-----|
+| SLF4J facade | All Java classes | Decouple code from logging implementation |
+| Logback (runtime) | spring-boot-starter-logging | Actual log engine (bundled with Spring Boot) |
+| Parameterized messages `{}` | All logger calls | Avoid string concatenation when log level is disabled |
+| Level-based filtering | application.properties | DEBUG for dev, INFO for production, WARN for noise reduction |
+| File output + rotation | application.properties | `lesson-dashboard.log`, 10MB max, 30 days history |
+| Log-per-layer strategy | Controller, Service, Security | Controller logs requests, Service logs business events, Security logs auth events |
+| No sensitive data in logs | All classes | Never log passwords, tokens, or secrets (security standard) |
+
+**Log levels used:**
+- `DEBUG` — Per-request details (JWT validation, lesson counts) — suppressed in production
+- `INFO` — State changes (login, create, update, delete, register)
+- `WARN` — Client errors the app handles (bad credentials, not found, invalid tokens)
+- `ERROR` — Unexpected failures (catch-all in GlobalExceptionHandler)
+
+### Exception Handling
+
+| Concept | Where | Why |
+|---------|-------|-----|
+| `@RestControllerAdvice` | GlobalExceptionHandler | Single place for all error-to-response mapping |
+| `@ExceptionHandler` methods | GlobalExceptionHandler | Type-specific handling (validation, 404, 405, malformed JSON, etc.) |
+| Structured error body | All error responses | Consistent `{ status, message, timestamp }` shape |
+| Safe error messages | Catch-all handler | Never expose stack traces, SQL, or internal paths to client |
+| Log level by category | GlobalExceptionHandler | 4xx → WARN, 5xx → ERROR (with full stack trace server-side) |
+| `ResponseStatusException` | Service layer | Throw HTTP-aware exceptions from business logic |
+
+**Exception types handled:**
+| Exception | HTTP Status | Example |
+|-----------|-------------|---------|
+| `MethodArgumentNotValidException` | 400 | Invalid form fields |
+| `HttpMessageNotReadableException` | 400 | Malformed JSON body |
+| `MethodArgumentTypeMismatchException` | 400 | String where number expected |
+| `ResponseStatusException` | varies | 401, 403, 404, 409 from services |
+| `HttpRequestMethodNotSupportedException` | 405 | PATCH on a PUT-only endpoint |
+| `NoResourceFoundException` | 404 | Non-existent URL path |
+| `Exception` (catch-all) | 500 | Unexpected server errors |
+
+### Input Validation
+
+| Concept | Where | Why |
+|---------|-------|-----|
+| `@Valid` on controller params | LessonController, AuthController | Triggers validation before handler runs |
+| DTO pattern | LoginRequest, RegisterRequest | Separate request validation from domain model |
+| Entity validation | Lesson.java | Data integrity at the persistence boundary |
+| `@NotBlank` | All required String fields | Rejects null, empty, and whitespace-only values |
+| `@Size(min, max)` | Strings with length rules | Username 3-50, title 2-200, description ≤1000 |
+| `@Min` / `@Max` | Numeric fields | Duration 1-1440 minutes |
+| `@Pattern(regexp)` | Level, date, username | Constrain to allowed values/formats |
+| Field-level error response | GlobalExceptionHandler | Returns array of "field: message" strings |
+
+**Validation rules:**
+
+| Field | Constraints |
+|-------|-------------|
+| Lesson title | Required, 2-200 chars |
+| Lesson category | Required, 2-100 chars |
+| Lesson instructor | Required, 2-100 chars |
+| Lesson level | Required, must be Beginner/Intermediate/Advanced |
+| Lesson date | Required, YYYY-MM-DD format |
+| Lesson duration | 1-1440 minutes |
+| Lesson description | Optional, max 1000 chars |
+| Login username | Required, 3-50 chars |
+| Login password | Required, min 6 chars |
+| Register username | Required, 3-50 chars, alphanumeric + underscores only |
+| Register password | Required, min 6 chars |
+| Register role | Must be ADMIN or INSTRUCTOR |
+
+---
+
 ## Design Decisions
 
 1. **Service Layer Abstraction** — The frontend has three layers (hooks → service → apiClient). Swapping from mock data to a real API was a one-file change in `lessonService.js`.
@@ -387,6 +485,16 @@ Backend REST API (protected by Spring Security + JWT)
 
 14. **Separate tokenStorage module** — Prevents circular imports between apiClient (reads token) and authService (writes token) by extracting shared state into its own module.
 
+15. **SLF4J + Logback (no extra dependencies)** — Spring Boot bundles Logback. Code logs through the SLF4J facade, keeping the implementation swappable. Parameterized `{}` placeholders avoid string concatenation overhead when log levels are disabled.
+
+16. **Log-per-layer strategy** — Controllers log HTTP requests (DEBUG) and mutations (INFO). Services log business events and warnings. Security classes log auth decisions. This makes tracing request flow straightforward in the log file.
+
+17. **DTO validation for auth endpoints** — `LoginRequest` and `RegisterRequest` DTOs separate request shape validation from the domain model. This lets auth validation rules evolve independently from the User entity.
+
+18. **Field-level validation error responses** — `GlobalExceptionHandler` maps `MethodArgumentNotValidException` to an `errors` array with `"field: message"` entries, giving the frontend enough info to highlight specific form fields.
+
+19. **Safe error responses** — The catch-all exception handler logs full stack traces server-side but returns only a generic message to the client. Internal details (SQL, paths, class names) never leak.
+
 ---
 
 ## Roadmap
@@ -394,4 +502,4 @@ Backend REST API (protected by Spring Security + JWT)
 - [x] Week 5: React dashboard with hooks, search, filter
 - [x] Week 6: Spring Boot REST API + full CRUD integration
 - [x] Week 7: JWT authentication + role-based access
-- [ ] Week 8: Production practices (logging, validation, error handling)
+- [x] Week 8: Production practices (logging, validation, exception handling)

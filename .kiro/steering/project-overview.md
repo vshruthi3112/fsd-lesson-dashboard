@@ -10,8 +10,8 @@ The goal is to build a Lesson Dashboard app that evolves week by week:
 
 - **Week 5** ✅: React Refresher — Hooks, state management, search & filter
 - **Week 6** ✅: Frontend connected to Spring Boot backend (CRUD via REST API)
-- **Week 7** ✅ (current): JWT Authentication with role-based authorization
-- **Week 8**: Production practices (logging, validation, exception handling)
+- **Week 7** ✅: JWT Authentication with role-based authorization
+- **Week 8** ✅ (current): Production practices (logging, validation, exception handling)
 
 ## Architecture
 
@@ -45,6 +45,9 @@ backend/                          # Spring Boot Backend (port 8080)
 ├── controller/
 │   ├── LessonController.java    # REST endpoints (GET/POST/PUT/DELETE /api/lessons)
 │   └── AuthController.java      # Auth endpoints (POST /api/auth/login, /register)
+├── dto/
+│   ├── LoginRequest.java        # Login request validation DTO
+│   └── RegisterRequest.java     # Registration request validation DTO
 ├── service/
 │   ├── LessonService.java       # Business logic layer
 │   └── AuthService.java         # Login/register logic (credential validation, token generation)
@@ -116,7 +119,8 @@ backend/                          # Spring Boot Backend (port 8080)
 - **Backend**: Spring Boot 3, Spring Data JPA, H2 (in-memory DB)
 - **Security**: Spring Security, JWT (JJWT library), BCrypt password hashing
 - **Dev Tooling**: Vite proxy, hot reload
-- **Coming**: Logging/validation hardening (Week 8)
+- **Logging**: SLF4J facade + Logback implementation (Spring Boot default)
+- **Validation**: Jakarta Bean Validation (DTOs + entities), field-level error responses
 
 ## Running the App
 

@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,9 +38,15 @@ import java.util.List;
  *
  * OncePerRequestFilter guarantees this runs exactly once per request
  * (not multiple times if the request gets forwarded internally).
+ *
+ * Logging:
+ * - DEBUG: Token validation steps (development visibility)
+ * - WARN: Invalid/expired tokens (security monitoring)
  */
 @Component
 public class JwtFilter extends OncePerRequestFilter {
+
+    private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
 
     private final JwtUtil jwtUtil;
 
@@ -75,6 +83,9 @@ public class JwtFilter extends OncePerRequestFilter {
                 String username = jwtUtil.getUsername(token);
                 String role = jwtUtil.getRole(token);
 
+                logger.debug("JWT authenticated user: '{}' with role: {} for path: {}",
+                        username, role, path);
+
                 // Step 6: Create Spring Security authorities
                 // "ROLE_" prefix is a Spring Security convention.
                 // When we say hasRole("ADMIN"), Spring checks for "ROLE_ADMIN".
@@ -93,7 +104,14 @@ public class JwtFilter extends OncePerRequestFilter {
                 // Step 8: Store in SecurityContext
                 // Now any @PreAuthorize or hasRole() check can see this user
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            } else {
+                // Token present but invalid (expired or tampered)
+                logger.warn("Invalid JWT token received for path: {}", path);
             }
+        } else if (authHeader != null) {
+            // Authorization header present but wrong format
+            logger.warn("Malformed Authorization header for path: {} (expected 'Bearer <token>')", path);
         }
 
         // Step 9: Continue the filter chain (let the request proceed)

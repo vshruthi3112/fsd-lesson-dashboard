@@ -1,13 +1,13 @@
 {
   "name": "Review Backend Changes",
-  "version": "1.0.0",
-  "description": "Reviews Java backend files for Spring Boot best practices when created or edited",
+  "version": "1.1.0",
+  "description": "Reviews Java backend files for Spring Boot best practices including logging, validation, and exception handling when created or edited",
   "when": {
     "type": "fileCreated",
     "patterns": ["backend/src/main/java/**/*.java"]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Review the new Java file against our backend standards: (1) Controllers handle HTTP concerns only — no business logic. (2) Services contain business logic, use constructor injection. (3) Entities use jakarta.validation annotations matching frontend validation rules. (4) Proper HTTP status codes (201 Created for POST, 204 No Content for DELETE, 404 for missing resources). (5) Errors should be handled via GlobalExceptionHandler, not try-catch in controllers. (6) JavaDoc on public methods. Suggest improvements if needed."
+    "prompt": "Review the new Java file against our backend standards: (1) Controllers handle HTTP concerns only — no business logic. (2) Services contain business logic, use constructor injection. (3) Entities and DTOs use jakarta.validation annotations (@NotBlank, @Size, @Min, @Max, @Pattern). (4) Proper HTTP status codes (201 Created for POST, 204 No Content for DELETE, 404 for missing resources). (5) Errors should be handled via GlobalExceptionHandler, not try-catch in controllers. (6) Logging: use SLF4J Logger with parameterized messages ({}), appropriate levels (DEBUG for reads, INFO for mutations, WARN for client errors, ERROR for unexpected failures). Never log passwords, tokens, or secrets. (7) All @RequestBody parameters must have @Valid annotation. (8) JavaDoc on public methods. Suggest improvements if needed."
   }
 }

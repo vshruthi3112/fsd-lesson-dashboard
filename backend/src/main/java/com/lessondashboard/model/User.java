@@ -2,12 +2,13 @@ package com.lessondashboard.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 /**
  * User entity - represents a user who can log in to the system.
  *
  * Each user has:
- * - username: unique identifier for login
+ * - username: unique identifier for login (3-50 chars, alphanumeric + underscores)
  * - password: stored as a BCrypt hash (NEVER store plain text passwords!)
  * - role: ADMIN or INSTRUCTOR (determines what they can do)
  *
@@ -23,7 +24,8 @@ public class User {
     private Long id;
 
     @NotBlank(message = "Username is required")
-    @Column(nullable = false, unique = true)
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Column(nullable = false, unique = true, length = 50)
     private String username;
 
     @NotBlank(message = "Password is required")
@@ -36,7 +38,7 @@ public class User {
      * instead of 0 or 1 (which would be EnumType.ORDINAL — avoid that!).
      */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private Role role;
 
     // --- Constructors ---

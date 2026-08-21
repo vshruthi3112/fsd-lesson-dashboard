@@ -16,17 +16,22 @@ import {
 } from './tokenStorage';
 
 /**
- * Hash a password using SHA-256 before sending to the server.
+ * Hash a password using SHA-256 with the username as a salt before sending to the server.
  *
- * This ensures the plain-text password never appears in network requests.
- * The server will BCrypt-hash this SHA-256 digest for storage/comparison.
+ * This ensures:
+ * 1. The plain-text password never appears in network request payloads
+ * 2. The hash is unique per user (username acts as salt), defeating rainbow table lookups
+ * 3. The server can reproduce the same hash since it knows the username
+ *
+ * The server will BCrypt-hash this salted SHA-256 digest for storage/comparison.
  *
  * @param {string} password - Plain-text password
+ * @param {string} username - Username used as salt
  * @returns {Promise<string>} Hex-encoded SHA-256 hash
  */
-async function hashPassword(password) {
+async function hashPassword(password, username) {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password);
+  const data = encoder.encode(username.toLowerCase() + ':' + password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -44,7 +49,7 @@ async function hashPassword(password) {
  * @throws {ApiError} On invalid credentials (401) or network errors
  */
 export async function login(username, password) {
-  const hashedPassword = await hashPassword(password);
+  const hashedPassword = await hashPassword(password, username);
   const response = await post('/auth/login', { username, password: hashedPassword });
 
   // Store token and user info
@@ -66,7 +71,7 @@ export async function login(username, password) {
  * @throws {ApiError} On conflict (409 username taken) or network errors
  */
 export async function register(username, password, role) {
-  const hashedPassword = await hashPassword(password);
+  const hashedPassword = await hashPassword(password, username);
   const response = await post('/auth/register', { username, password: hashedPassword, role });
 
   setToken(response.token);

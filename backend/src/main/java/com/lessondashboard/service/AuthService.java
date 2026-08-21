@@ -4,6 +4,8 @@ import com.lessondashboard.model.Role;
 import com.lessondashboard.model.User;
 import com.lessondashboard.repository.UserRepository;
 import com.lessondashboard.security.JwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,9 +22,16 @@ import org.springframework.web.server.ResponseStatusException;
  * - UserRepository (database access)
  * - PasswordEncoder (BCrypt hashing)
  * - JwtUtil (token generation)
+ *
+ * Logging strategy:
+ * - INFO: Successful operations (login, register)
+ * - WARN: Failed attempts (wrong password, username taken)
+ * - NEVER log passwords, tokens, or hashes
  */
 @Service
 public class AuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -52,17 +61,22 @@ public class AuthService {
     public String login(String username, String password) {
         // Find the user in the database
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED, "Invalid username or password"));
+                .orElseThrow(() -> {
+                    logger.warn("Login failed - user not found: {}", username);
+                    return new ResponseStatusException(
+                            HttpStatus.UNAUTHORIZED, "Invalid username or password");
+                });
 
         // Compare plain-text password with stored BCrypt hash
         // passwordEncoder.matches() handles the hashing internally
         if (!passwordEncoder.matches(password, user.getPassword())) {
+            logger.warn("Login failed - invalid password for user: {}", username);
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED, "Invalid username or password");
         }
 
         // Credentials valid! Generate a token.
+        logger.info("User '{}' authenticated successfully with role: {}", username, user.getRole().name());
         return jwtUtil.generateToken(user.getUsername(), user.getRole().name());
     }
 
@@ -84,6 +98,7 @@ public class AuthService {
     public String register(String username, String password, Role role) {
         // Check if username is taken
         if (userRepository.findByUsername(username).isPresent()) {
+            logger.warn("Registration failed - username already exists: {}", username);
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT, "Username already exists");
         }
@@ -94,6 +109,8 @@ public class AuthService {
         // Create and save the user
         User user = new User(username, hashedPassword, role);
         userRepository.save(user);
+
+        logger.info("New user registered: '{}' with role: {}", username, role.name());
 
         // Generate a token so they're immediately logged in
         return jwtUtil.generateToken(user.getUsername(), user.getRole().name());

@@ -1,10 +1,16 @@
 package com.lessondashboard.controller;
 
+import com.lessondashboard.dto.LoginRequest;
+import com.lessondashboard.dto.RegisterRequest;
 import com.lessondashboard.model.Role;
 import com.lessondashboard.service.AuthService;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -31,6 +37,8 @@ import java.util.Map;
 @CrossOrigin(origins = "http://localhost:3000")
 public class AuthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
@@ -40,26 +48,25 @@ public class AuthController {
     /**
      * POST /api/auth/login - Authenticate a user.
      *
+     * Uses @Valid with LoginRequest DTO for input validation.
      * Accepts username and password, returns a JWT token + user info.
      * The frontend stores the token and sends it with future requests.
      */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
+    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request) {
+        String username = request.getUsername().trim();
+        String password = request.getPassword();
 
-        if (username == null || password == null) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "message", "Username and password are required"
-            ));
-        }
+        logger.info("Login attempt for user: {}", username);
 
         // AuthService validates credentials and generates token
         String token = authService.login(username, password);
         Role role = authService.getUserRole(username);
 
+        logger.info("Login successful for user: {} with role: {}", username, role.name());
+
         // Return token + user info so the frontend knows who's logged in
-        Map<String, String> response = new java.util.HashMap<>();
+        Map<String, String> response = new HashMap<>();
         response.put("token", token);
         response.put("username", username);
         response.put("role", role.name());
@@ -70,6 +77,7 @@ public class AuthController {
     /**
      * POST /api/auth/register - Create a new user account.
      *
+     * Uses @Valid with RegisterRequest DTO for input validation.
      * Accepts username, password, and role.
      * Returns a JWT token so the user is immediately logged in.
      *
@@ -77,29 +85,29 @@ public class AuthController {
      * For this learning project, anyone can register with any role.
      */
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-        String roleStr = request.get("role");
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
+        String username = request.getUsername().trim();
+        String password = request.getPassword();
+        String roleStr = request.getRole();
 
-        if (username == null || password == null) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "message", "Username and password are required"
-            ));
-        }
+        logger.info("Registration attempt for user: {}", username);
 
-        // Parse the role string to enum (defaults to INSTRUCTOR if invalid)
+        // Parse the role string to enum (defaults to INSTRUCTOR if null)
         Role role;
         try {
             role = Role.valueOf(roleStr != null ? roleStr.toUpperCase() : "INSTRUCTOR");
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             role = Role.INSTRUCTOR;
+            logger.warn("Invalid role '{}' provided during registration for user: {}. Defaulting to INSTRUCTOR.",
+                    roleStr, username);
         }
 
         // AuthService hashes password, saves user, generates token
         String token = authService.register(username, password, role);
 
-        Map<String, String> response = new java.util.HashMap<>();
+        logger.info("Registration successful for user: {} with role: {}", username, role.name());
+
+        Map<String, String> response = new HashMap<>();
         response.put("token", token);
         response.put("username", username);
         response.put("role", role.name());

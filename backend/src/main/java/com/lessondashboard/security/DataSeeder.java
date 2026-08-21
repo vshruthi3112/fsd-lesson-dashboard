@@ -3,6 +3,8 @@ package com.lessondashboard.security;
 import com.lessondashboard.model.Role;
 import com.lessondashboard.model.User;
 import com.lessondashboard.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -22,12 +24,17 @@ import java.security.NoSuchAlgorithmException;
  * CommandLineRunner runs AFTER Spring Boot starts up and all beans are ready.
  * We check if users already exist to avoid duplicates on restart.
  *
- * DEFAULT ACCOUNTS:
+ * DEFAULT ACCOUNTS (local development only):
  *   admin / password123       → ADMIN role (full access)
  *   instructor / password123  → INSTRUCTOR role (view + create only)
+ *
+ * IMPORTANT: In production, override these via environment variables or
+ * disable this seeder entirely. These are for LOCAL DEVELOPMENT ONLY.
  */
 @Component
 public class DataSeeder implements CommandLineRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -41,36 +48,42 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         // Only seed if no users exist (first startup)
         if (userRepository.count() == 0) {
-            // Hash "password123" with SHA-256 first (matching what the frontend sends),
+            logger.info("No users found in database. Seeding default accounts for development...");
+
+            // Hash "password123" with SHA-256 salted by username (matching what the frontend sends),
             // then BCrypt-hash that for storage.
-            String sha256Hash = sha256("password123");
+            // Frontend sends: SHA256(username.toLowerCase() + ":" + password)
 
             // Create admin user
+            String adminHash = sha256("admin" + ":" + "password123");
             User admin = new User(
                     "admin",
-                    passwordEncoder.encode(sha256Hash),
+                    passwordEncoder.encode(adminHash),
                     Role.ADMIN
             );
             userRepository.save(admin);
+            logger.info("Default user created: 'admin' with role ADMIN");
 
             // Create instructor user
+            String instructorHash = sha256("instructor" + ":" + "password123");
             User instructor = new User(
                     "instructor",
-                    passwordEncoder.encode(sha256Hash),
+                    passwordEncoder.encode(instructorHash),
                     Role.INSTRUCTOR
             );
             userRepository.save(instructor);
+            logger.info("Default user created: 'instructor' with role INSTRUCTOR");
 
-            System.out.println("✅ Default users created:");
-            System.out.println("   admin / password123 (ADMIN)");
-            System.out.println("   instructor / password123 (INSTRUCTOR)");
+            logger.info("Data seeding complete. {} users in database.", userRepository.count());
+        } else {
+            logger.debug("Users already exist in database. Skipping seed.");
         }
     }
 
     /**
      * Compute SHA-256 hash of a string, returned as hex.
-     * Mirrors the frontend hashPassword() function so seeded passwords
-     * match what the client sends during login.
+     * Mirrors the frontend hashPassword() function.
+     * The input should be: username.toLowerCase() + ":" + password
      */
     private String sha256(String input) {
         try {
@@ -82,6 +95,7 @@ public class DataSeeder implements CommandLineRunner {
             }
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
+            logger.error("SHA-256 algorithm not available - cannot seed users", e);
             throw new RuntimeException("SHA-256 not available", e);
         }
     }

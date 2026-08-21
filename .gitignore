@@ -19,3 +19,7 @@ Thumbs.db
 # Env files
 .env
 .env.local
+
+# Application logs
+logs/
+*.log

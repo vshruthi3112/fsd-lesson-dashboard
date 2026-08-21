@@ -8,6 +8,9 @@ import jakarta.validation.constraints.*;
  *
  * Fields match the JSON shape expected by the React frontend:
  * { id, title, description, category, instructor, duration, level, date }
+ *
+ * Validation constraints enforce data integrity at the API boundary.
+ * These are checked whenever @Valid is used on the controller parameter.
  */
 @Entity
 @Table(name = "lesson")
@@ -18,29 +21,38 @@ public class Lesson {
     private Long id;
 
     @NotBlank(message = "Title is required")
-    @Column(nullable = false)
+    @Size(min = 2, max = 200, message = "Title must be between 2 and 200 characters")
+    @Column(nullable = false, length = 200)
     private String title;
 
+    @Size(max = 1000, message = "Description cannot exceed 1000 characters")
+    @Column(length = 1000)
     private String description;
 
     @NotBlank(message = "Category is required")
-    @Column(nullable = false)
+    @Size(min = 2, max = 100, message = "Category must be between 2 and 100 characters")
+    @Column(nullable = false, length = 100)
     private String category;
 
     @NotBlank(message = "Instructor is required")
-    @Column(nullable = false)
+    @Size(min = 2, max = 100, message = "Instructor must be between 2 and 100 characters")
+    @Column(nullable = false, length = 100)
     private String instructor;
 
     @Min(value = 1, message = "Duration must be at least 1 minute")
+    @Max(value = 1440, message = "Duration cannot exceed 1440 minutes (24 hours)")
     @Column(nullable = false)
     private int duration;
 
     @NotBlank(message = "Level is required")
-    @Column(nullable = false)
+    @Pattern(regexp = "^(Beginner|Intermediate|Advanced)$",
+             message = "Level must be Beginner, Intermediate, or Advanced")
+    @Column(nullable = false, length = 20)
     private String level;
 
     @NotBlank(message = "Date is required")
-    @Column(nullable = false)
+    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "Date must be in YYYY-MM-DD format")
+    @Column(nullable = false, length = 10)
     private String date;
 
     // --- Constructors ---

@@ -120,7 +120,17 @@ public class JwtUtil {
         try {
             getClaims(token); // This throws if invalid or expired
             return true;
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            logger.warn("JWT token expired for user: {}", e.getClaims().getSubject());
+            return false;
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            logger.warn("JWT signature verification failed — possible token tampering");
+            return false;
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            logger.warn("Malformed JWT token received");
+            return false;
         } catch (Exception e) {
+            logger.warn("JWT validation failed: {}", e.getMessage());
             return false;
         }
     }
@@ -143,11 +153,8 @@ public class JwtUtil {
                 .parseSignedClaims(token)      // Parse and validate
                 .getPayload();                 // Get the claims (payload)
 
-        logger.info("JWT Payload - subject: {}, role: {}, issuedAt: {}, expiration: {}",
-                claims.getSubject(),
-                claims.get("role"),
-                claims.getIssuedAt(),
-                claims.getExpiration());
+        // DEBUG level — runs on EVERY request, so we don't want this in production logs
+        logger.debug("JWT validated - subject: {}, role: {}", claims.getSubject(), claims.get("role"));
 
         return claims;
     }

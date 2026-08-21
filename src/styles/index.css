@@ -790,3 +790,47 @@ body {
 .btn-logout:hover {
   background-color: #d33;
 }
+
+/* ============================================
+   Week 8: Production Practices - Validation UI
+   ============================================ */
+
+/* --- Field-level validation errors --- */
+.field-error {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #c0392b;
+  font-weight: 500;
+}
+
+/* --- Input invalid state --- */
+.form-group input[aria-invalid="true"],
+.form-group textarea[aria-invalid="true"],
+.form-group select[aria-invalid="true"] {
+  border-color: #e74c3c;
+}
+
+.form-group input[aria-invalid="true"]:focus,
+.form-group textarea[aria-invalid="true"]:focus {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+/* --- Character count indicator --- */
+.char-count {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: #999;
+  text-align: right;
+}
+
+/* --- Field hint text (shown below input) --- */
+.field-hint {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: #888;
+  font-style: italic;
+}
