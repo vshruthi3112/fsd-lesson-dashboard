@@ -4,6 +4,7 @@ import com.lessondashboard.dto.LoginRequest;
 import com.lessondashboard.dto.RegisterRequest;
 import com.lessondashboard.model.Role;
 import com.lessondashboard.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,17 @@ public class AuthController {
     }
 
     /**
+     * Extract client IP address, respecting X-Forwarded-For header for proxied requests.
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    /**
      * POST /api/auth/login - Authenticate a user.
      *
      * Uses @Valid with LoginRequest DTO for input validation.
@@ -53,11 +65,13 @@ public class AuthController {
      * The frontend stores the token and sends it with future requests.
      */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request,
+                                                      HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
         String username = request.getUsername().trim();
         String password = request.getPassword();
 
-        logger.info("Login attempt for user: {}", username);
+        logger.info("Login attempt for user: {} from IP: {}", username, clientIp);
 
         // AuthService validates credentials and generates token
         String token = authService.login(username, password);
@@ -85,12 +99,14 @@ public class AuthController {
      * For this learning project, anyone can register with any role.
      */
     @PostMapping("/register")
-    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request,
+                                                         HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
         String username = request.getUsername().trim();
         String password = request.getPassword();
         String roleStr = request.getRole();
 
-        logger.info("Registration attempt for user: {}", username);
+        logger.info("Registration attempt for user: {} from IP: {}", username, clientIp);
 
         // Parse the role string to enum (defaults to INSTRUCTOR if null)
         Role role;
