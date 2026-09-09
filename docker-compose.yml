@@ -1,0 +1,82 @@
+# ============================================
+# Docker Compose — Lesson Dashboard (Full Stack)
+# ============================================
+#
+# WHAT IS DOCKER COMPOSE?
+# Docker Compose lets you define and run MULTIPLE containers together.
+# Instead of running separate "docker build" and "docker run" commands
+# for the frontend and backend, you define everything in one file and
+# start it all with a single command:
+#
+#   docker-compose up --build
+#
+# This file defines TWO services:
+# 1. backend  — Spring Boot API (port 8080)
+# 2. frontend — React + Nginx (port 3000 → mapped to container port 80)
+#
+# They communicate over a shared Docker network.
+# The frontend's Nginx config forwards /api requests to the backend.
+
+services:
+  # ── Backend: Spring Boot API ────────────────────────
+  backend:
+    build:
+      context: ./backend          # Build from backend/Dockerfile
+      dockerfile: Dockerfile
+    container_name: lesson-dashboard-backend
+    ports:
+      - "8080:8080"               # Host port 8080 → Container port 8080
+    environment:
+      # ENVIRONMENT VARIABLES
+      # These override values in application.properties at runtime.
+      # Spring Boot automatically maps env vars to properties:
+      #   JWT_SECRET → jwt.secret
+      #   SERVER_PORT → server.port
+      #
+      # Using env vars means the same Docker image works in dev, staging,
+      # and production — only the configuration changes.
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTtokenSigning2024LessonDashboard!}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-86400000}
+      - SERVER_PORT=8080
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-default}
+      - LOG_PATH=/app/logs
+    volumes:
+      - backend-logs:/app/logs    # Persist logs outside the container
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/auth/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped       # Auto-restart if it crashes
+    networks:
+      - app-network
+
+  # ── Frontend: React + Nginx ─────────────────────────
+  frontend:
+    build:
+      context: .                  # Build from root Dockerfile
+      dockerfile: Dockerfile
+    container_name: lesson-dashboard-frontend
+    ports:
+      - "3000:80"                 # Host port 3000 → Container's Nginx port 80
+    depends_on:
+      backend:
+        condition: service_started  # Wait for backend to start
+    restart: unless-stopped
+    networks:
+      - app-network
+
+# ── Volumes ───────────────────────────────────────────
+# Named volumes persist data across container restarts.
+# Without this, logs would be lost every time the container restarts.
+volumes:
+  backend-logs:
+
+# ── Networks ──────────────────────────────────────────
+# A custom network lets containers find each other by service name.
+# The frontend can reach the backend using "http://backend:8080"
+# because Docker resolves "backend" to the correct container IP.
+networks:
+  app-network:
+    driver: bridge

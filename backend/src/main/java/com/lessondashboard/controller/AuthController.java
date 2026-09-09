@@ -20,6 +20,7 @@ import java.util.Map;
  * Endpoints:
  *   POST /api/auth/login     → Log in with username + password → get JWT token
  *   POST /api/auth/register  → Create new account → get JWT token
+ *   GET  /api/auth/health    → Health check endpoint for Docker/Azure monitoring
  *
  * These endpoints are PUBLIC (no token required) — configured in SecurityConfig.
  *
@@ -44,6 +45,21 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    /**
+     * GET /api/auth/health - Health check endpoint.
+     *
+     * Used by Docker HEALTHCHECK and Azure App Service to verify the
+     * application is running and responsive. Returns a simple JSON response.
+     * This endpoint is PUBLIC (no token required).
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, String>> health() {
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "UP");
+        response.put("service", "lesson-dashboard-api");
+        return ResponseEntity.ok(response);
     }
 
     /**

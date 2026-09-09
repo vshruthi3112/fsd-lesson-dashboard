@@ -13,7 +13,18 @@
 
 import { getToken, clearAuth } from './tokenStorage';
 
-const BASE_URL = '/api';
+/**
+ * Base URL for API requests.
+ *
+ * ENVIRONMENT VARIABLES in Vite:
+ * Vite exposes env vars prefixed with VITE_ to the client code.
+ * import.meta.env.VITE_API_URL is set at BUILD TIME (not runtime).
+ *
+ * - Development: defaults to '/api' (Vite's proxy forwards to localhost:8080)
+ * - Production Docker: defaults to '/api' (Nginx reverse proxy forwards to backend)
+ * - Custom: set VITE_API_URL at build time to point to a different backend
+ */
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Custom error class for API failures.

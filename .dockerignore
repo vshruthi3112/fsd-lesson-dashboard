@@ -1,0 +1,44 @@
+# ============================================
+# .dockerignore — Files to EXCLUDE from Docker builds
+# ============================================
+# Just like .gitignore tells Git what to skip,
+# .dockerignore tells Docker what NOT to copy into the image.
+# This makes builds faster and images smaller.
+
+# Dependencies (build happens on host, only dist/ is copied to Docker)
+node_modules/
+
+# Build output — dist/ is NOT excluded because we build on the host
+# and copy the pre-built files into the Docker image.
+# backend/target/ is excluded because the backend Dockerfile builds inside the container.
+backend/target/
+
+# Git files (not needed in production)
+.git/
+.gitignore
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Docker files (prevent recursive copies)
+docker-compose.yml
+.dockerignore
+
+# Environment files (secrets should be injected at runtime, not baked into images)
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs (generated at runtime)
+logs/
+*.log
+backend/logs/
+
+# Kiro config
+.kiro/

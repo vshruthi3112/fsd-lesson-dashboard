@@ -1,0 +1,7 @@
+# Backend-specific Docker ignore
+target/
+logs/
+.git/
+.idea/
+*.iml
+.env
