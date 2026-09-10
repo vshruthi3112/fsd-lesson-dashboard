@@ -6,20 +6,24 @@
 #   Stage 1 ("build"): Node.js — installs dependencies, builds React
 #   Stage 2 ("runtime"): Nginx — serves the static HTML/CSS/JS files
 #
-# This Dockerfile is used by Railway (cloud deployment).
+# Uses yarn instead of npm to work around a known npm ci/install bug
+# in Docker builds ("Exit handler never called") that causes silent
+# dependency installation failures.
 
 # ── Stage 1: Build the React application ────────────────────────
 FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copy package files first (Docker layer caching)
+# Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies using npm install instead of npm ci
-# to work around a known npm ci bug ("Exit handler never called")
-# that silently skips devDependencies in Docker builds.
-RUN npm install --registry https://registry.npmjs.org/
+# Use yarn to install dependencies (npm has a known Docker bug)
+# --frozen-lockfile is yarn's equivalent of npm ci
+RUN yarn install
+
+# Verify vite is actually installed
+RUN ls node_modules/.bin/vite && echo "vite found"
 
 # Copy source code and config
 COPY index.html vite.config.js ./
@@ -28,7 +32,7 @@ COPY src ./src
 # Build the production bundle
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=${VITE_API_URL}
-RUN npx vite build
+RUN ./node_modules/.bin/vite build
 
 # ── Stage 2: Serve with Nginx ───────────────────────────────────
 FROM nginx:alpine
