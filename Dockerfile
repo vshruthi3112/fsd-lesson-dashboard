@@ -30,7 +30,9 @@ COPY index.html vite.config.js ./
 COPY src ./src
 
 # Build the production bundle
-ARG VITE_API_URL=/api
+# VITE_API_URL is set at build time. For Railway deployment, this should
+# point directly to the backend's Railway URL (no Nginx proxy needed).
+ARG VITE_API_URL=https://fsd-lesson-dashboard-production.up.railway.app/api
 ENV VITE_API_URL=${VITE_API_URL}
 RUN ./node_modules/.bin/vite build
 
