@@ -35,8 +35,13 @@ RUN vite build
 FROM nginx:alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx-template.conf
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# Railway sets PORT dynamically. Default to 80 for local Docker.
+ENV PORT=80
+
+# Use envsubst to replace only $PORT in the template, preserving
+# Nginx variables like $uri and $scheme. Then start Nginx.
+CMD envsubst '$$PORT' < /etc/nginx/nginx-template.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
