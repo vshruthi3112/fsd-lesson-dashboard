@@ -10,7 +10,7 @@
 # Railway can access the public npm registry, so npm ci works here.
 
 # ── Stage 1: Build the React application ────────────────────────
-FROM node:18 AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -19,10 +19,8 @@ ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
 
 # Copy package files and install dependencies
-# Upgrade npm first to avoid a known bug in older npm versions
-# where 'Exit handler never called!' causes incomplete installs
 COPY package.json package-lock.json ./
-RUN npm install -g npm@latest && npm ci --registry https://registry.npmjs.org/
+RUN npm ci --registry https://registry.npmjs.org/
 
 # Copy source code and config
 COPY index.html vite.config.js ./
