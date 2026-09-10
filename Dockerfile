@@ -19,8 +19,10 @@ ENV NODE_ENV=development
 ENV PATH=/app/node_modules/.bin:$PATH
 
 # Copy package files and install dependencies
+# Upgrade npm first to avoid a known bug in older npm versions
+# where 'Exit handler never called!' causes incomplete installs
 COPY package.json package-lock.json ./
-RUN npm ci --registry https://registry.npmjs.org/
+RUN npm install -g npm@latest && npm ci --registry https://registry.npmjs.org/
 
 # Copy source code and config
 COPY index.html vite.config.js ./
