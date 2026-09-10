@@ -32,7 +32,6 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/lessons")
-@CrossOrigin(origins = "http://localhost:3000") // Allow React dev server
 public class LessonController {
 
     private static final Logger logger = LoggerFactory.getLogger(LessonController.class);
