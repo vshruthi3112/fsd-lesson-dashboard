@@ -87,7 +87,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
 
                 // PUBLIC endpoints (no token needed):
-                .requestMatchers("/api/auth/**").permitAll()   // Login & register
+                .requestMatchers("/").permitAll()               // Root health/info endpoint
+                .requestMatchers("/api/auth/**").permitAll()    // Login & register
                 .requestMatchers("/h2-console/**").permitAll()  // DB console (dev only)
 
                 // LESSON endpoints with role-based access:
