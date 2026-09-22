@@ -16,8 +16,7 @@ This guide covers deploying the Lesson Dashboard (React frontend + Spring Boot b
 8. [Custom Domains](#8-custom-domains)
 9. [Monitoring & Logs](#9-monitoring--logs)
 10. [Redeployment & CI/CD](#10-redeployment--cicd)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Cleanup](#12-cleanup)
+11. [Cleanup](#12-cleanup)
 
 ---
 
@@ -618,78 +617,7 @@ railway up
 
 ---
 
-## 11. Troubleshooting
-
-### Container fails to start
-
-**Symptom:** Deployment stays in "Building" or immediately crashes.
-
-**Check logs:**
-- Railway dashboard → Service → Deployments → Click deployment → View logs.
-- Look for Java/Spring Boot startup errors (missing env vars, port conflicts).
-
-**Common causes:**
-- `PORT` not set or mismatch: Railway sets `PORT` automatically. Ensure `SERVER_PORT` matches what your app listens on (8080 for the backend).
-- Missing `JWT_SECRET`: The production profile (`application-production.properties`) requires `JWT_SECRET` without a fallback — set it in Railway variables.
-
-### Frontend loads but API calls fail
-
-**Symptom:** Login page appears, but login returns a network error.
-
-**Checklist:**
-1. **Check `VITE_API_URL`**: Open browser DevTools → Console → enter `__VITE_API_URL__` or check the Network tab to see where requests go. The URL should match your backend's Railway domain.
-2. **Check CORS**: Open browser DevTools → Console. If you see `CORS policy` errors, the backend's `CORS_ALLOWED_ORIGINS` doesn't include the frontend's URL.
-3. **Check backend is running**: Visit `https://<backend-domain>.railway.app/api/auth/health` directly in the browser.
-
-### CORS errors
-
-**Symptom:** Browser console shows `Access to fetch at '...' from origin '...' has been blocked by CORS policy`.
-
-**Fix:**
-1. Go to the backend service in Railway.
-2. Set `CORS_ALLOWED_ORIGINS` to **exactly** the frontend URL (include `https://`, no trailing slash).
-3. Redeploy the backend.
-
-Example:
-```
-# Correct
-CORS_ALLOWED_ORIGINS=https://frontend-xxx-production.up.railway.app
-
-# Wrong (trailing slash)
-CORS_ALLOWED_ORIGINS=https://frontend-xxx-production.up.railway.app/
-
-# Wrong (http instead of https)
-CORS_ALLOWED_ORIGINS=http://frontend-xxx-production.up.railway.app
-```
-
-### JWT errors after deployment
-
-**Symptom:** Login works but subsequent API calls return 401.
-
-**Possible causes:**
-- `JWT_SECRET` is different between deployments (if the backend restarted with a different secret, old tokens are invalid).
-- `JWT_SECRET` is too short (must be 32+ characters for HS256).
-- Token expired (check `JWT_EXPIRATION`).
-
-**Fix:** Ensure `JWT_SECRET` is set as a Railway variable (persists across deployments). Clear browser localStorage and log in again.
-
-### H2 data resets on redeploy
-
-**Expected behavior.** H2 is an in-memory database — data is lost when the container restarts. The seed data from `data.sql` and `DataSeeder.java` repopulates on startup.
-
-For persistent data, you'd switch to a PostgreSQL or MySQL database. Railway offers managed PostgreSQL as an add-on service.
-
-### Build is slow
-
-**First build** is slow because Docker downloads all Maven/npm dependencies. Subsequent builds use Docker layer caching — if only source code changed (not `pom.xml` or `package.json`), dependencies are cached.
-
-If builds are consistently slow:
-- Ensure `.dockerignore` is correct (not copying `node_modules/` or `target/` into the build context).
-- The backend Dockerfile copies `pom.xml` first and runs `mvn dependency:go-offline` to leverage caching.
-
----
-
-## 12. Cleanup
+## 11. Cleanup
 
 ### Delete a Single Service
 
