@@ -16,7 +16,7 @@ This guide covers deploying the Lesson Dashboard (React frontend + Spring Boot b
 8. [Custom Domains](#8-custom-domains)
 9. [Monitoring & Logs](#9-monitoring--logs)
 10. [Redeployment & CI/CD](#10-redeployment--cicd)
-11. [Cleanup](#12-cleanup)
+11. [Cleanup](#11-cleanup)
 
 ---
 
